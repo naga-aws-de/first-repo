@@ -145,6 +145,35 @@ where drnk_product_per_category <=1;
 -- (category,product,user_id,spend,transaction_date)
 
 
+WITH product_totals AS (
+    SELECT 
+        product,
+        SUM(spend) AS total_spend,
+        dense_rank() OVER (ORDER BY SUM(spend) DESC) AS prod_rank
+    FROM orders04
+    GROUP BY product
+),
+top_products AS (
+    SELECT product
+    FROM product_totals
+    WHERE prod_rank <= 3
+),
+user_rank as (
+select 
+o.product,
+o.user_id,
+sum(spend) as user_spend,
+dense_rank() over(partition by o.product order by sum(spend) desc ) as user_ranks
+from orders04 o
+where o.product in (select product from top_products)
+group by o.product,o.user_id
+)
+SELECT product, user_id, user_spend
+FROM user_rank
+WHERE user_ranks = 1
+ORDER BY product;
+
+
 
 
 
