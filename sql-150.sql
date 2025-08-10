@@ -173,7 +173,58 @@ FROM user_rank
 WHERE user_ranks = 1
 ORDER BY product;
 
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------
 
+# 06 who has not done purchase in last month (orders) 
+
+select distinct c.customer_id,c.name,c.email,o.*
+from customers06 c
+left join orders06 o
+on c.customer_id=o.customer_id
+and order_date > date_sub(current_date(),interval 1 month) where o.order_id is null;
+
+# List loyal customers who made a purchase in every month for the last 3 months
+
+with recent_orders as (
+select 
+customer_id,
+date_format(order_date,"%Y-%m") as month
+from orders06
+where order_date >= date_sub(current_date(),interval 3 month)
+group by 1,2
+),
+customer_count_month as 
+(select 
+customer_id,count(distinct month) as month_purchased
+from recent_orders
+group by customer_id
+)
+select c.*  from customers06 c left join 
+customer_count_month ccm on c.customer_id=ccm.customer_id
+where ccm.month_purchased=3;
+
+# Find customers who spent above the average customer spend in the last 30 days
+
+with customer_spend as
+(select 
+customer_id,
+sum(amount) as total_spend
+from orders06
+where order_date >= date_sub(current_date(),interval 35 day)
+group by customer_id
+),
+avg_spend as (
+select avg(total_spend) as avg_spend
+from customer_spend
+)
+select c.* from customers06 c
+join customer_spend cs on c.customer_id=cs.customer_id 
+join avg_spend  ase on cs.total_spend > ase.avg_spend;
+
+
+
+# SELECT * FROM customers06;(customer_id, name, email)
+# SELECT * FROM orders06;(order_id, customer_id, order_date, amount)
 
 
 
